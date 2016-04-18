@@ -16,14 +16,20 @@ namespace ExcelDataMerge.ExtensionMethods
         /// <param name="name">The name.</param>
         /// <param name="headerStyle">The header style.</param>
         /// <param name="rowStyle">The row style.</param>
-        public static void Add(this IList<SetStyle> list, string name, CellStyle headerStyle, CellStyle rowStyle)
+        /// <param name="columnIndex">Index of the column.</param>
+        public static void Add(this IList<SetStyle> list, string name, CellStyle headerStyle, CellStyle rowStyle, int? columnIndex = null)
         {
-            list.Add(new SetStyle()
+            if (!list.Any(l => l.Name == name && (columnIndex.HasValue && l.ColumnIndex.HasValue ? l.ColumnIndex.Value == columnIndex.Value : columnIndex == l.ColumnIndex)))
             {
-                HeaderStyle = headerStyle,
-                Name = name,
-                RowStyle = rowStyle
-            });
+                list.Add(new SetStyle()
+                {
+                    HeaderStyle = headerStyle,
+                    Name = name,
+                    RowStyle = rowStyle,
+                    ColumnIndex = columnIndex
+                });
+
+            }
         }
     }
 }

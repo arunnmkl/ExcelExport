@@ -33,6 +33,14 @@ namespace ExcelDataMerge
         public Borders Borders { get; private set; }
 
         /// <summary>
+        /// Gets the numbering formats.
+        /// </summary>
+        /// <value>
+        /// The numbering formats.
+        /// </value>
+        public NumberingFormats NumberingFormats { get; private set; }
+
+        /// <summary>
         /// Gets the cell formats.
         /// </summary>
         /// <value>
@@ -48,6 +56,7 @@ namespace ExcelDataMerge
             this.Fonts = this.ReadFonts();
             this.Fills = this.ReadFills();
             this.Borders = this.ReadBorders();
+            this.NumberingFormats = this.ReadNumberingFormats();
             this.CellFormats = this.ReadCellFormats();
         }
 
@@ -134,6 +143,18 @@ namespace ExcelDataMerge
             );
         }
 
+        private NumberingFormats ReadNumberingFormats()
+        {
+            uint iExcelIndex = 164;
+            return new NumberingFormats(
+              new NumberingFormat() { NumberFormatId = UInt32Value.FromUInt32(iExcelIndex++), FormatCode = StringValue.FromString("dd/mm/yyyy hh:mm:ss") }, // Date time -- 164
+              new NumberingFormat() { NumberFormatId = UInt32Value.FromUInt32(iExcelIndex++), FormatCode = StringValue.FromString("#,##0.0000") },  // 4 decimal -- 165
+              new NumberingFormat() { NumberFormatId = UInt32Value.FromUInt32(iExcelIndex++), FormatCode = StringValue.FromString("#,##0.00") },    // 2 decimal -- 166
+              new NumberingFormat() { NumberFormatId = UInt32Value.FromUInt32(iExcelIndex++), FormatCode = StringValue.FromString("@") },   // ForcedText -- 167
+              new NumberingFormat() { NumberFormatId = UInt32Value.FromUInt32(iExcelIndex++), FormatCode = StringValue.FromString("\"" + System.Globalization.CultureInfo.CurrentUICulture.NumberFormat.CurrencySymbol + "\"\\ " + "#,##0.00") }   // Currency -- 168
+            );
+        }
+
         /// <summary>
         /// Reads the cell formats.
         /// </summary>
@@ -152,7 +173,8 @@ namespace ExcelDataMerge
                     new CellFormat() { FontId = 0, FillId = 0, BorderId = 1, ApplyBorder = true },     // Index 6 - Border
                     new CellFormat(new Alignment() { Horizontal = HorizontalAlignmentValues.Center, Vertical = VerticalAlignmentValues.Center }) { FontId = 0, FillId = 3, BorderId = 1, ApplyFill = true, ApplyAlignment = true },       // Index 7 - lite blue Fill
                     new CellFormat(new Alignment() { Horizontal = HorizontalAlignmentValues.Center, Vertical = VerticalAlignmentValues.Center }) { FontId = 0, FillId = 4, BorderId = 1, ApplyFill = true, ApplyAlignment = true },       // Index 8 - navy Fill
-                    new CellFormat(new Alignment() { Horizontal = HorizontalAlignmentValues.Center, Vertical = VerticalAlignmentValues.Center }) { FontId = 0, FillId = 0, BorderId = 1, ApplyBorder = true, ApplyAlignment = true }      // Index 9 - AlignmentWithBorder
+                    new CellFormat(new Alignment() { Horizontal = HorizontalAlignmentValues.Center, Vertical = VerticalAlignmentValues.Center }) { FontId = 0, FillId = 0, BorderId = 1, ApplyBorder = true, ApplyAlignment = true },     // Index 9 - AlignmentWithBorder
+                    new CellFormat() { FontId = 0, FillId = 0, BorderId = 1, ApplyBorder = true, NumberFormatId = 167, ApplyNumberFormat = true }     // Index 10 - Border Currency
             );
         }
     }

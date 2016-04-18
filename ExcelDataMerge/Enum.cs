@@ -49,7 +49,11 @@ namespace ExcelDataMerge.Enum
         /// <summary>
         /// The alignment with border
         /// </summary>
-        AlignmentWithBorder = 9
+        AlignmentWithBorder = 9 ,
+        /// <summary>
+        /// The currency
+        /// </summary>
+        Currency = 10
     }
 
     /// <summary>

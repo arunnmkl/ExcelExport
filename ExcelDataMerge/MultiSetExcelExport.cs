@@ -98,6 +98,33 @@ namespace ExcelDataMerge
         /// Creates the excel document.
         /// </summary>
         /// <param name="excelFilePath">The excel file path.</param>
+        /// <param name="sheetName">Name of the sheet.</param>
+        /// <param name="dataSets">The data sets.</param>
+        /// <returns>
+        /// export state
+        /// </returns>
+        internal static bool CreateExcelDocument(string excelFilePath, string sheetName, IList<DataSet> dataSets)
+        {
+            try
+            {
+                using (SpreadsheetDocument spreadsheetDocument = SpreadsheetDocument.Create(excelFilePath, SpreadsheetDocumentType.Workbook))
+                {
+                    WriteExcelFile(dataSets, spreadsheetDocument, sheetName);
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                // ::TODO to add logs.
+
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Creates the excel document.
+        /// </summary>
+        /// <param name="excelFilePath">The excel file path.</param>
         /// <param name="excelDataModel">The excel data model.</param>
         /// <returns></returns>
         private static bool CreateExcelDocument(string excelFilePath, IList<ExcelExportModel> excelDataModel)
@@ -140,33 +167,6 @@ namespace ExcelDataMerge
 
                     spreadsheetDocument.WorkbookPart.Workbook.Save();
 
-                    return true;
-                }
-            }
-            catch (Exception ex)
-            {
-                // ::TODO to add logs.
-
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Creates the excel document.
-        /// </summary>
-        /// <param name="excelFilePath">The excel file path.</param>
-        /// <param name="sheetName">Name of the sheet.</param>
-        /// <param name="dataSets">The data sets.</param>
-        /// <returns>
-        /// export state
-        /// </returns>
-        internal static bool CreateExcelDocument(string excelFilePath, string sheetName, IList<DataSet> dataSets)
-        {
-            try
-            {
-                using (SpreadsheetDocument spreadsheetDocument = SpreadsheetDocument.Create(excelFilePath, SpreadsheetDocumentType.Workbook))
-                {
-                    WriteExcelFile(dataSets, spreadsheetDocument, sheetName);
                     return true;
                 }
             }
@@ -339,7 +339,7 @@ namespace ExcelDataMerge
             foreach (var rowData in rowDataList)
             {
                 cellIndex = 0;
-                 row = new Row { RowIndex = ++rowIndex };
+                row = new Row { RowIndex = ++rowIndex };
                 sheetData.AppendChild(row);
                 foreach (var cellData in rowData)
                 {
@@ -636,7 +636,7 @@ namespace ExcelDataMerge
         static Stylesheet GenerateStyleSheet()
         {
             StyleSheetSetting eStyleSheet = new StyleSheetSetting();
-            return new Stylesheet(eStyleSheet.Fonts, eStyleSheet.Fills, eStyleSheet.Borders, eStyleSheet.CellFormats);
+            return new Stylesheet(eStyleSheet.Fonts, eStyleSheet.Fills, eStyleSheet.Borders, eStyleSheet.NumberingFormats, eStyleSheet.CellFormats);
         }
 
         /// <summary>

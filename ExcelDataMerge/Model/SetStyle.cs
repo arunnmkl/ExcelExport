@@ -34,5 +34,13 @@ namespace ExcelDataMerge.Model
         /// The row style.
         /// </value>
         public CellStyle RowStyle { get; set; }
+
+        /// <summary>
+        /// Gets or sets the index of the column.
+        /// </summary>
+        /// <value>
+        /// The index of the column.
+        /// </value>
+        public int? ColumnIndex { get; set; }
     }
 }

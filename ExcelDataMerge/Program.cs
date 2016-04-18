@@ -22,6 +22,7 @@ namespace ExcelDataMerge
             setStyles.Add("Set 1", CellStyle.YellowFill, CellStyle.Default);
             setStyles.Add("Sample", CellStyle.NavyFill, CellStyle.Default);
             setStyles.Add("Table 1", CellStyle.LiteBlueFill, CellStyle.Default);
+            setStyles.Add("Table 1", CellStyle.LiteBlueFill, CellStyle.Default, 2);
 
             ExcelExportModel model1 = new ExcelExportModel(dataTable: MyDataStore.GetTableData("Sample",columnCount: 10), sheetName: @"Multi Set Sheet One", exportAs: ExportType.Single);
             ExcelExportModel model2 = new ExcelExportModel(dataSets: dataSets, sheetName: @"Multi Set Sheet Two", exportAs: ExportType.Merged);
