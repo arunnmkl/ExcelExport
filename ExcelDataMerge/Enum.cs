@@ -66,4 +66,19 @@ namespace ExcelDataMerge.Enum
         /// </summary>
         Row
     }
+
+    /// <summary>
+    /// Enums for export type.
+    /// </summary>
+    public enum ExportType
+    {
+        /// <summary>
+        /// The single/individual
+        /// </summary>
+        Single,
+        /// <summary>
+        /// The merged
+        /// </summary>
+        Merged
+    }
 }

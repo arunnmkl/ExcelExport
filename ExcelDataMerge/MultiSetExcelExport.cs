@@ -19,45 +19,136 @@ namespace ExcelDataMerge
         /// <summary>
         /// The row index
         /// </summary>
-        private static uint rowIndex;
+        static uint rowIndex;
 
         /// <summary>
         /// The cell index
         /// </summary>
-        private static uint cellIndex;
+        static uint cellIndex;
 
         /// <summary>
         /// The row
         /// </summary>
-        private static Row row;
+        static Row row;
 
         /// <summary>
         /// The initial cell index
         /// </summary>
-        private static uint initialCellIndex;
+        static uint initialCellIndex;
 
         /// <summary>
         /// The set styles
         /// </summary>
-        private static IList<SetStyle> setStyles = new List<SetStyle>();
+        static IList<SetStyle> setStyles = new List<SetStyle>();
 
         /// <summary>
         /// Creates the excel document.
         /// </summary>
+        /// <param name="excelFilePath">The excel file path.</param>
         /// <param name="model">The model.</param>
+        /// <param name="styles">The set styles.</param>
         /// <returns>
         /// export state
         /// </returns>
-        /// <exception cref="System.ArgumentNullException">model</exception>
-        internal static bool CreateExcelDocument(ExcelExportModel model)
+        /// <exception cref="ArgumentNullException">model and setStyles</exception>
+        internal static bool CreateExcelDocument(string excelFilePath, ExcelExportModel model, IList<SetStyle> styles)
         {
             if (model == null)
             {
                 throw new ArgumentNullException(nameof(model));
             }
 
-            setStyles = model.SetStyles;
-            return CreateExcelDocument(model.FilePath, model.SheetName, model.DataSets);
+            if (styles == null)
+            {
+                throw new ArgumentNullException(nameof(styles));
+            }
+
+            SetDefaultValues();
+            setStyles = styles.ToList();
+            return CreateExcelDocument(excelFilePath, model.SheetName, model.DataSets);
+        }
+
+        /// <summary>
+        /// Creates the excel document.
+        /// </summary>
+        /// <param name="excelFilePath">The excel file path.</param>
+        /// <param name="excelDataModel">The excel data model.</param>
+        /// <param name="styles">The set styles.</param>
+        /// <returns>export state</returns>
+        /// <exception cref="ArgumentNullException">excelDataModel and setStyles
+        /// </exception>
+        internal static bool CreateExcelDocument(string excelFilePath, IList<ExcelExportModel> excelDataModel, IList<SetStyle> styles)
+        {
+            if (excelDataModel == null)
+            {
+                throw new ArgumentNullException(nameof(excelDataModel));
+            }
+
+            if (styles == null)
+            {
+                throw new ArgumentNullException(nameof(styles));
+            }
+
+            SetDefaultValues();
+            setStyles = styles.ToList();
+            return CreateExcelDocument(excelFilePath, excelDataModel);
+        }
+
+        /// <summary>
+        /// Creates the excel document.
+        /// </summary>
+        /// <param name="excelFilePath">The excel file path.</param>
+        /// <param name="excelDataModel">The excel data model.</param>
+        /// <returns></returns>
+        private static bool CreateExcelDocument(string excelFilePath, IList<ExcelExportModel> excelDataModel)
+        {
+            try
+            {
+                using (SpreadsheetDocument spreadsheetDocument = SpreadsheetDocument.Create(excelFilePath, SpreadsheetDocumentType.Workbook))
+                {
+                    //  Create the Excel file contents.  This function is used when creating an Excel file either writing 
+                    //  to a file, or writing to a MemoryStream.
+                    spreadsheetDocument.AddWorkbookPart();
+                    spreadsheetDocument.WorkbookPart.Workbook = new Workbook();
+
+                    // the following line of code (which prevents crashes in Excel 2010)
+                    spreadsheetDocument.WorkbookPart.Workbook.Append(new BookViews(new WorkbookView()));
+
+                    WorkbookStylesPart stylesPart = spreadsheetDocument.WorkbookPart.AddNewPart<WorkbookStylesPart>();
+                    stylesPart.Stylesheet = GenerateStyleSheet();
+
+                    uint worksheetNumber = 1;
+                    foreach (var item in excelDataModel)
+                    {
+                        if (item.ExportAs == Enum.ExportType.Merged)
+                        {
+                            cellIndex = 0;
+                            rowIndex = 0;
+                            CreateNewWorkSheet(item.DataSets, spreadsheetDocument, item.SheetName, ref worksheetNumber);
+                        }
+                        else if (item.ExportAs == Enum.ExportType.Single)
+                        {
+                            foreach (DataSet dataSet in item.DataSets)
+                            {
+                                foreach (DataTable dataTable in dataSet.Tables)
+                                {
+                                    CreateNewWorkSheet(dataTable, spreadsheetDocument, item.SheetName, ref worksheetNumber);
+                                }
+                            }
+                        }
+                    }
+
+                    spreadsheetDocument.WorkbookPart.Workbook.Save();
+
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                // ::TODO to add logs.
+
+                return false;
+            }
         }
 
         /// <summary>
@@ -66,7 +157,9 @@ namespace ExcelDataMerge
         /// <param name="excelFilePath">The excel file path.</param>
         /// <param name="sheetName">Name of the sheet.</param>
         /// <param name="dataSets">The data sets.</param>
-        /// <returns>export state</returns>
+        /// <returns>
+        /// export state
+        /// </returns>
         internal static bool CreateExcelDocument(string excelFilePath, string sheetName, IList<DataSet> dataSets)
         {
             try
@@ -91,7 +184,7 @@ namespace ExcelDataMerge
         /// <param name="dataSets">The data sets.</param>
         /// <param name="spreadsheetDocument">The spreadsheet document.</param>
         /// <param name="sheetName">Name of the sheet.</param>
-        private static void WriteExcelFile(IList<DataSet> dataSets, SpreadsheetDocument spreadsheetDocument, string sheetName)
+        static void WriteExcelFile(IList<DataSet> dataSets, SpreadsheetDocument spreadsheetDocument, string sheetName)
         {
             //  Create the Excel file contents.  This function is used when creating an Excel file either writing 
             //  to a file, or writing to a MemoryStream.
@@ -105,19 +198,19 @@ namespace ExcelDataMerge
             stylesPart.Stylesheet = GenerateStyleSheet();
 
             uint worksheetNumber = 1;
-            CreateNewSheet(dataSets, spreadsheetDocument, sheetName, worksheetNumber);
+            CreateNewWorkSheet(dataSets, spreadsheetDocument, sheetName, ref worksheetNumber);
 
             spreadsheetDocument.WorkbookPart.Workbook.Save();
         }
 
         /// <summary>
-        /// Creates the new sheet.
+        /// Creates the new work sheet.
         /// </summary>
         /// <param name="dataSets">The data sets.</param>
         /// <param name="spreadsheetDocument">The spreadsheet document.</param>
         /// <param name="sheetName">Name of the sheet.</param>
         /// <param name="worksheetNumber">The worksheet number.</param>
-        private static void CreateNewSheet(IList<DataSet> dataSets, SpreadsheetDocument spreadsheetDocument, string sheetName, uint worksheetNumber)
+        static void CreateNewWorkSheet(IList<DataSet> dataSets, SpreadsheetDocument spreadsheetDocument, string sheetName, ref uint worksheetNumber)
         {
             // New sheet creation and appending the data into it.
             WorksheetPart newWorksheetPart = spreadsheetDocument.WorkbookPart.AddNewPart<WorksheetPart>();
@@ -152,12 +245,47 @@ namespace ExcelDataMerge
         }
 
         /// <summary>
+        /// Creates the new work sheet.
+        /// </summary>
+        /// <param name="dataTable">The data sets.</param>
+        /// <param name="spreadsheetDocument">The spreadsheet document.</param>
+        /// <param name="sheetName">Name of the sheet.</param>
+        /// <param name="worksheetNumber">The worksheet number.</param>
+        static void CreateNewWorkSheet(DataTable dataTable, SpreadsheetDocument spreadsheetDocument, string sheetName, ref uint worksheetNumber)
+        {
+            WorksheetPart newWorksheetPart = spreadsheetDocument.WorkbookPart.AddNewPart<WorksheetPart>();
+            newWorksheetPart.Worksheet = new Worksheet();
+
+            // create sheet data
+            newWorksheetPart.Worksheet.AppendChild(new SheetData());
+
+            // save worksheet
+            CreateSheetData(newWorksheetPart, dataTable);
+            newWorksheetPart.Worksheet.Save();
+
+            // create the worksheet to workbook relation
+            if (worksheetNumber == 1)
+            {
+                spreadsheetDocument.WorkbookPart.Workbook.AppendChild(new Sheets());
+            }
+
+            spreadsheetDocument.WorkbookPart.Workbook.GetFirstChild<Sheets>().AppendChild(new Sheet()
+            {
+                Id = spreadsheetDocument.WorkbookPart.GetIdOfPart(newWorksheetPart),
+                SheetId = worksheetNumber,
+                Name = sheetName ?? dataTable.TableName
+            });
+
+            worksheetNumber++;
+        }
+
+        /// <summary>
         /// Creates the sheet data.
         /// </summary>
         /// <param name="newWorksheetPart">The new worksheet part.</param>
         /// <param name="mergeCellItem">The merge cell item.</param>
         /// <param name="data">The data.</param>
-        private static void CreateSheetData(WorksheetPart newWorksheetPart, IList<MergeCell> mergeCellItem, DataSet data)
+        static void CreateSheetData(WorksheetPart newWorksheetPart, IList<MergeCell> mergeCellItem, DataSet data)
         {
             var worksheet = newWorksheetPart.Worksheet;
             var sheetData = worksheet.GetFirstChild<SheetData>();
@@ -175,11 +303,58 @@ namespace ExcelDataMerge
         }
 
         /// <summary>
+        /// Creates the sheet data.
+        /// </summary>
+        /// <param name="newWorksheetPart">The new worksheet part.</param>
+        /// <param name="data">The data.</param>
+        static void CreateSheetData(WorksheetPart newWorksheetPart, DataTable data)
+        {
+            var worksheet = newWorksheetPart.Worksheet;
+            var sheetData = worksheet.GetFirstChild<SheetData>();
+
+            rowIndex = 0;
+            cellIndex = 0;
+            row = new Row { RowIndex = ++rowIndex };
+            sheetData.AppendChild(row);
+            initialCellIndex = cellIndex;
+
+            IList<string> headerNameList = MyDataStoreHelper.GetHeaderNameList(data);
+            IList<object[]> rowDataList = MyDataStoreHelper.ConvertToRowDataList(data);
+            string clFirst = ColumnLetter(cellIndex++);
+            string clLast = clFirst;
+            uint? cellStyle = null;
+
+            if (cellStyle.HasValue == false)
+            {
+                cellStyle = GetCellStyle(data.TableName, Enum.CellType.Header);
+            }
+
+            foreach (var item in headerNameList)
+            {
+                row.AppendChild(CreateTextCell(clLast, rowIndex, item ?? string.Empty, cellStyle.Value));
+                clLast = ColumnLetter(cellIndex++);
+            }
+
+            // Add sheet data
+            foreach (var rowData in rowDataList)
+            {
+                cellIndex = 0;
+                 row = new Row { RowIndex = ++rowIndex };
+                sheetData.AppendChild(row);
+                foreach (var cellData in rowData)
+                {
+                    var cell = CreateTextCell(ColumnLetter(cellIndex++), rowIndex, cellData ?? string.Empty);
+                    row.AppendChild(cell);
+                }
+            }
+        }
+
+        /// <summary>
         /// Sets the merge cell.
         /// </summary>
         /// <param name="mergeCellItem">The merge cell item.</param>
         /// <param name="newWorksheetPart">The new worksheet part.</param>
-        private static void SetMergeCell(IList<MergeCell> mergeCellItem, WorksheetPart newWorksheetPart)
+        static void SetMergeCell(IList<MergeCell> mergeCellItem, WorksheetPart newWorksheetPart)
         {
             if (newWorksheetPart.Worksheet.Elements<MergeCells>().Count() == 0)
             {
@@ -233,7 +408,7 @@ namespace ExcelDataMerge
         /// <param name="mergeCellItem">The merge cell item.</param>
         /// <param name="headerNameList">The header name list.</param>
         /// <param name="dataSetName">Name of the data set.</param>
-        private static void ApplyHeader(IList<MergeCell> mergeCellItem, IDictionary<string, IList<string>> headerNameList, string dataSetName)
+        static void ApplyHeader(IList<MergeCell> mergeCellItem, IDictionary<string, IList<string>> headerNameList, string dataSetName)
         {
             IList<string> indexerPrefix = new List<string>();
             IList<string> fullIndexer = new List<string>();
@@ -328,7 +503,7 @@ namespace ExcelDataMerge
         /// </summary>
         /// <param name="sheetData">The sheet data.</param>
         /// <param name="rowDataList">The row data list.</param>
-        private static void AddRows(SheetData sheetData, IDictionary<string, IList<object[]>> rowDataList)
+        static void AddRows(SheetData sheetData, IDictionary<string, IList<object[]>> rowDataList)
         {
             var prevRowIndex = rowIndex;
             var prevCellIndex = initialCellIndex;
@@ -366,7 +541,7 @@ namespace ExcelDataMerge
         /// <returns>
         /// position identity
         /// </returns>
-        private static string ColumnLetter(uint columnXAxis)
+        static string ColumnLetter(uint columnXAxis)
         {
             var intFirstLetter = ((columnXAxis) / 676) + 64;
             var intSecondLetter = ((columnXAxis % 676) / 26) + 64;
@@ -389,7 +564,7 @@ namespace ExcelDataMerge
         /// <returns>
         /// initiated cell
         /// </returns>
-        private static Cell CreateTextCell(string header, uint index, string text, uint styleIndex = (uint)Enum.CellStyle.Default)
+        static Cell CreateTextCell(string header, uint index, string text, uint styleIndex = (uint)Enum.CellStyle.Default)
         {
             Cell cell = new Cell
             {
@@ -414,7 +589,7 @@ namespace ExcelDataMerge
         /// <returns>
         /// initiated cell
         /// </returns>
-        private static Cell CreateTextCell(string header, uint index, object text, uint styleIndex = (uint)Enum.CellStyle.Border)
+        static Cell CreateTextCell(string header, uint index, object text, uint styleIndex = (uint)Enum.CellStyle.Border)
         {
             Cell cell = new Cell
             {
@@ -458,7 +633,7 @@ namespace ExcelDataMerge
         /// <returns>
         /// style sheet
         /// </returns>
-        private static Stylesheet GenerateStyleSheet()
+        static Stylesheet GenerateStyleSheet()
         {
             StyleSheetSetting eStyleSheet = new StyleSheetSetting();
             return new Stylesheet(eStyleSheet.Fonts, eStyleSheet.Fills, eStyleSheet.Borders, eStyleSheet.CellFormats);
@@ -469,8 +644,10 @@ namespace ExcelDataMerge
         /// </summary>
         /// <param name="dataSetName">Name of the data set.</param>
         /// <param name="cellType">Type of the cell.</param>
-        /// <returns>cell style</returns>
-        private static uint GetCellStyle(string dataSetName, Enum.CellType cellType)
+        /// <returns>
+        /// cell style
+        /// </returns>
+        static uint GetCellStyle(string dataSetName, Enum.CellType cellType)
         {
             if (setStyles != null)
             {
@@ -496,6 +673,18 @@ namespace ExcelDataMerge
                 default:
                     return (uint)Enum.CellStyle.Border;
             }
+        }
+
+        /// <summary>
+        /// Sets the default values.
+        /// </summary>
+        static void SetDefaultValues()
+        {
+            rowIndex = 0;
+            cellIndex = 0;
+            row = null;
+            initialCellIndex = 0;
+            setStyles = new List<SetStyle>();
         }
     }
 }

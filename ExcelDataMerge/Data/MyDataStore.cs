@@ -213,5 +213,47 @@ namespace ExcelDataMerge.Data
 
             return rowDataList;
         }
+
+        /// <summary>
+        /// Gets the header name list.
+        /// </summary>
+        /// <param name="dataTable">The data table.</param>
+        /// <returns>column name as in string array</returns>
+        public static IList<string> GetHeaderNameList(DataTable dataTable)
+        {
+            IList<string> columnNameList = new List<string>();
+            if (dataTable == null || dataTable.Columns == null || dataTable.Columns.Count == 0)
+            {
+                return columnNameList;
+            }
+
+            for (int index = 0; index < dataTable.Columns.Count; index++)
+            {
+                columnNameList.Add(dataTable.Columns[index].ColumnName);
+            }
+
+            return columnNameList;
+        }
+
+        /// <summary>
+        /// Converts to row data list.
+        /// </summary>
+        /// <param name="dataTable">The data table.</param>
+        /// <returns>row values as in object array</returns>
+        public static IList<object[]> ConvertToRowDataList(DataTable dataTable)
+        {
+            IList<object[]> rowItemList = new List<object[]>();
+            if (dataTable == null || dataTable.Rows == null || dataTable.Rows.Count == 0)
+            {
+                return rowItemList;
+            }
+
+            for (int index = 0; index < dataTable.Rows.Count; index++)
+            {
+                rowItemList.Add(dataTable.Rows[index].ItemArray);
+            }
+
+            return rowItemList;
+        }
     }
 }
